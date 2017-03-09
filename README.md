@@ -1,6 +1,4 @@
-# radial
-
-## Radial graph of justice datasets
+# Radial graph of justice datasets
 
 This is a D3.js visualisation of UK Justice System Datasets.
 
