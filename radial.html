@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+body{
+  font: 16px "Gill Sans", Helvetica, Arial, sans-serif;
+}
+button {
+  border:none;
+  background-color:#24457A;
+  color:white;
+  cursor:pointer;
+}
+button:focus {outline:0;}
+.main-body{
+  width:100%;
+  margin:0 auto;
+}
+.vis{
+  max-width:81em;
+  margin: 0 auto;
+  position:relative;
+}
+h1{
+  text-align: center;
+}
+.node {
+  font: 11px "Gill Sans", Helvetica, Arial, sans-serif;
+  fill: white;
+  cursor: pointer;
+}
+
+.org{
+  font:16px;
+  fill: #000;
+}
+
+.link {
+  stroke: steelblue;
+  stroke-opacity: .4;
+  fill: none;
+}
+
+
+.arc {
+    fill: #F3BD00;
+    cursor: pointer;
+}
+.arc.hmcts{
+  fill: #24457A;
+}
+.arc.police{
+  fill: #289A8D;
+}
+.arc.hmpps{
+  fill: #EF6906;
+}
+.arc.cps{
+  fill: #EB5755;
+}
+.arc.laa{
+  fill: #EB5755;
+}
+.arc.yjb{
+  fill: #EB5755;
+}
+.arc.otherProsecutingAuthorities{
+  fill: #8D8D8E;
+}
+.selected{
+  fill:#00A4FF !important;
+  background-color:#00A4FF;
+}
+.controls{
+  z-index:100;
+  position:fixed;
+  margin:2vw;
+  border: 1px solid black;
+  background-color: white;
+  padding:1vw;
+}
+h2{
+  margin:0 0 .5vw 0;
+
+}
+.key{
+
+  height:.8em;
+  width:.8em;
+  margin-top:.3em;
+  float:left;
+}
+.hotPink{
+  stroke:hotpink;
+}
+.blue{
+  stroke:#00A4FF;
+}
+.grey{
+  stroke-opacity: 0 !important;
+  stroke:#eee;
+}
+.white{
+  fill:#fff !important;
+  
+}
+.black{
+  fill:#000 !important;
+}
+.key.hotPink{
+  background-color:hotpink;
+}
+.key.blue{
+  background-color:#00A4FF;
+}
+.hidden{
+  stroke-opacity: 0 !important;
+  stroke:#eee;
+  /*stroke:red;*/
+}
+.hide{
+  display:none;
+}
+
+</style>
+<body onload='draw();'>
+  <div class='controls'>
+    <h2>Controls</h2>
+    <button class='all'>All</button>
+    <button class='flows'>Flows</button>
+    <button class='filter'>Filter</button>
+    <div class='levers'>    
+            <br>
+      <div class='lever all'></div>
+      <div class='lever flows hide'>
+          <div class='key hotPink'></div>
+          <input type="checkbox" class='import' checked='true'>Import</input>
+        <br>
+          <div class='key blue'></div>
+          <input type="checkbox" class='export' checked='true'>Export</input>
+      </div>
+      <div class='lever filter hide'>
+          
+          <input type="radio" value='open' name='openSharedClosed'>Open Data</input>
+        <br>
+          
+          <input type="radio" value='shared' name='openSharedClosed'>Shared Data</input>
+        <br>
+          
+          <input type="radio" value='closed' name='openSharedClosed'>Closed Data</input>
+        <br><br>
+          
+          <input type="radio" value='structured' name='struc'>Structured</input>
+        <br>
+          
+          <input type="radio" value='unstructured' name='struc'>Unstructured</input>
+      </div>
+    </div>
+
+
+  </div>
+  <div class='main-body'>
+    <h1>Criminal Justice System Datasets</h1>
+    <div class='vis'></div>
+  </div>
+<script src="http://d3js.org/d3.v3.js"></script>
+<script>
+function draw(){
+  var diameter = 960,
+      radius = diameter / 2,
+      innerRadius = radius - 170;
+
+  var cluster = d3.layout.cluster()
+      .size([360, innerRadius])
+      .sort(null)
+      .value(function(d) { return d.size; });
+
+  // var arc = d3.arc()
+  //     .outerRadius(diameter / 2)
+  //     .innerRadius((diameter / 2)-120)
+  //     .context(context);
+
+  var arc = d3.svg.arc()
+    .innerRadius((diameter / 2)-170)
+    .outerRadius(diameter / 2)
+    .startAngle(function(d) { return d.x / 180 * Math.PI-.02;})
+    .endAngle(function(d) { return d.x / 180 * Math.PI+.02;});
+
+
+  var bundle = d3.layout.bundle();
+
+  var line = d3.svg.line.radial()
+      .interpolate("bundle")
+      .tension(.65)
+      .radius(function(d) { return d.y; })
+      .angle(function(d) { return d.x / 180 * Math.PI; })
+
+  var svg = d3.select(".vis").append("svg")
+      .attr("width", "100vw")//diameter+200)
+      .attr("height","100vw") //diameter+200)
+      .attr("preserveAspectRatio","xMidYMid")
+    .append("g")
+      .attr("transform", "translate(" + (radius+200) + "," + (radius+100) + ")");
+
+  d3.json("radial3.json", function(error, classes) {
+    if (error) throw error;
+
+    var nodes = cluster.nodes(packageHierarchy(classes)),
+        links = packageImports(nodes);
+
+        //console.log(links);
+
+    //draw the lines
+    svg.selectAll(".link")
+        .data(bundle(links))
+      .enter().append("path")
+        .attr("class", function(d){
+          //console.log(d);
+          return "link"+ " "+ d[0].className+" "+d[0].open+" "+d[0].structured;
+        })
+        .attr("data-exp", function(d){
+          return d[d.length-1].className;
+        })
+        .attr("d", line);
+
+    // svg.append("path")
+    //   .attr("class", "arc")
+    //   .attr("d", arc);
+
+    //draw coloured arcs
+    svg.selectAll(".node")
+        .data(nodes.filter(function(n) { return !n.children; }))
+      .enter().append("path")
+        .attr("class", function(d){return "arc "+d.className+" "+d.open+" "+d.structured;})
+        // .style("fill", function(d) { return (d.color); })
+        .attr("d", arc);
+
+    //draw the text
+    svg.selectAll(".node")
+        .data(nodes.filter(function(n) { return !n.children; })) //return all nodes with no children
+      .enter().append("g")
+        .attr("class", function(d){return "node "+d.className;})
+        .attr("transform", function(d) { return "rotate(" + (d.x - 90) + ")translate(" + d.y + ")"; })
+      .append("text")
+        .attr("dx", function(d) { return d.x < 180 ? 8 : -8; })
+        .attr("dy", ".31em")
+        .attr("text-anchor", function(d) { return d.x < 180 ? "start" : "end"; })
+        .attr("transform", function(d) { return d.x < 180 ? null : "rotate(180)"; })
+        .text(function(d) { return d.key; });
+
+    //draw labels
+    svg.selectAll(".label")
+        .data(nodes.filter(function(n) { return n.depth === 2 & typeof n.children !='undefined'; }))
+      .enter().append("g")
+        .attr("class", "node")
+        .attr("transform", function(d) { 
+          var thisy = 500;
+          return "rotate(" + (d.x - 92) + ")translate(" + thisy + ")";
+        })
+      .append("text")
+        .attr("dx", function(d) { return 8 })
+        .attr("dy", ".31em")
+        .attr("class", "org")
+        .attr("text-anchor", function(d) { return d.x < 180 ? "start" : "end"; })
+        .attr("transform", function(d) { return "rotate(" + ((d.x - 92)-((d.x-92)*2))+")"})//return d.x < 90 || d.x > 270 ? "rotate(90)" : "rotate(-90)"; })
+        .text(function(d) { 
+          return names(d.name); });
+
+
+  });
+
+ d3.select(self.frameElement).style("height", diameter + "px");
+
+  // Lazily construct the package hierarchy from class names.
+  function packageHierarchy(classes) {
+    var map = {};
+
+    function find(name, data, humanName, open, structured, className ) {
+      var node = map[name], i;
+      if (!node) {
+        node = map[name] = data || {name: name, children: []};
+        if (name.length) {
+          node.parent = find(name.substring(0, i = name.lastIndexOf(".")));
+          node.parent.children.push(node);
+          node.key = humanName;//name.substring(i + 1);
+          node.open = open;
+          node.structured = structured;
+          node.className = className
+        }
+      }
+      return node;
+    }
+
+    var counter = 0;
+    classes.forEach(function(d) {
+      //console.log(counter++);
+      find(d.name, d, d.humanName, d.open, d.structured, d.className);
+    });
+
+    return map[""];
+  }
+
+  // Return a list of imports for the given array of nodes.
+  function packageImports(nodes) {
+    var map = {},
+        imports = [];
+
+    // Compute a map from name to node.
+    nodes.forEach(function(d) {
+      map[d.name] = d;
+    });
+
+    // For each import, construct a link from the source to target node.
+    nodes.forEach(function(d) {
+      if (d.imports) d.imports.forEach(function(i) {
+        imports.push({source: map[d.name], target: map[i]});
+      });
+    });
+
+    return imports;
+  }
+
+  function names(string){
+    switch(string){
+      case "cjs.laa":
+        return "LAA";
+        break;
+      case "cjs.police":
+        return "Police";
+        break;
+      case "cjs.hmpps":
+        return "HMPPS";
+        break;
+      case "cjs.hmcts":
+        return "HMCTS";
+        break
+      case "cjs.yjb":
+        return "YJB";
+        break;
+      case "cjs.cps":
+        return "CPS";
+        break;
+      case "cjs.european":
+        return "European";
+        break;
+      case "cjs.dwp":
+        return "DWP";
+        break;
+      case "cjs.visaAndImmigration":
+        return "Visa & Immigration";
+        break;
+      case "cjs.securityIndustryAuthority":
+        return "Security Industry Authority";
+        break; 
+      case "cjs.dvla":
+        return "DVLA";
+        break;
+      case "cjs.disclosureAndBarringService":
+        return "Disclosure & Barring Service";
+        break;
+      case "cjs.clg":
+        return "CLG";
+        break;
+      case "cjs.motorInsuranceBureau":
+        return "Motor Insurance Bureau";
+        break;
+      case "cjs.hmpo":
+        return "HMPO";
+        break;
+      case "cjs.publicDefenderService":
+        return "Public Defender Service";
+      case "cjs.otherProsecutingAuthorities":
+        return "Other Prosecuting Authorities";
+        break;
+      case "cjs.homeOffice":
+        return "Home Office";
+        break;
+      case "cjs.officeOfThePublicGuardian":
+        return "Office of The Public Guardian";
+        break;
+      case "cjs.vetting":
+        return "Vetting Services";
+        break;
+      case "cjs.international":
+        return "International";
+        break;
+      case "cjs.criminalInjuriesCompensationAuthority":
+        return "CICA";
+        break;
+      case "cjs.moj":
+        return "MoJ Corporate";
+        break;
+      case "cjs.NHS":
+        return "NHS";
+        break;
+      default:
+        return string;
+        break;
+    }
+  }
+setTimeout(function(){
+  hover();
+}, 1000);
+
+}
+
+function hover(){
+  selectGroups();
+  filter();
+  buttons();
+}
+
+function buttons(){
+  var buttons = document.querySelectorAll('button');
+  //console.log(buttons);
+  for( var i = 0 ; i < buttons.length ; i++ ){
+    buttons[i].addEventListener('click', function(e){
+      resetLinesAndArcs('steelblue')
+      
+      console.log(e.target.className);
+      var thisOne = document.querySelectorAll('.lever');
+      console.log(thisOne);
+      for ( var k = 0 ; k < thisOne.length ; k++ ){
+        thisOne[k].className = thisOne[k].className.replace(' hide','');
+      }
+
+      var levers = document.querySelectorAll('.lever:not(.'+e.target.className+')');
+      for ( var j = 0 ; j < levers.length ; j++){
+        levers[j].className = levers[j].className+' hide';
+      }
+
+      resetButtons();
+      selectButton(e.target.className);
+      //console.log(levers);
+    })
+  }
+}
+
+function selectButton(thisClass){
+  var button = document.getElementsByClassName(thisClass)[0];
+  button.className = button.className + ' selected'
+}
+
+function resetButtons(){
+  var buttons = document.querySelectorAll('button');
+  for ( var i = 0 ; i < buttons.length ; i++ ){
+    buttons[i].className = buttons[i].className.replace(' selected', '');
+  }
+}
+
+function filter(){
+
+  // var inputs = openSharedClosed.concat(struc);
+  var inputs = getAllRadios();
+  console.log(inputs);
+  for (var i = 0 ; i < inputs.length ; i++){
+    inputs[i].addEventListener('click', function(e){
+      resetLinesAndArcs('steelblue');
+      var ins = getAllRadios();
+      var classes = [];
+      for ( var j = 0 ; j < ins.length ; j++ ){
+        if (ins[j].checked){
+          classes.push(ins[j].value);
+        }
+      }
+      console.log(classes);
+      showOnly(classes);
+    })
+  }
+}
+
+function getAllRadios(){
+  var inputs = document.getElementsByName('openSharedClosed');
+  var struc = document.getElementsByName('struc');
+  var allTags = [];
+  allTags.push.apply(allTags, inputs);
+  allTags.push.apply(allTags, struc);
+  return allTags;
+}
+
+function showOnly(classes){
+  
+  //LINES
+  resetLinesAndArcs('steelblue');
+  hideAllLines();
+  var selector = 'link ';
+  for (var k in classes){
+    selector+=classes[k]+' ';
+  }
+  selector = selector.trim();
+  //console.log(selector);
+  var lines = document.getElementsByClassName(selector);
+  //console.log(lines);
+
+  for ( var l = 0 ; l < lines.length ; l++ ){
+    var thisClass = lines[l].getAttribute("class").replace(' hidden','');
+    lines[l].setAttribute("class",thisClass);
+  }
+
+  //ARCS
+  whiteArcs();
+  var arcSel = 'arc ';
+  for (var k in classes){
+    arcSel+=classes[k]+' ';
+  }
+  arcSel = arcSel.trim();
+  var arcs = document.getElementsByClassName(arcSel);
+  console.log(arcs);
+  for (var o = 0 ; o < arcs.length ; o++ ){
+    var thisClass = arcs[o].getAttribute('class').replace(' white','') + ' selected';
+    arcs[o].setAttribute('class',thisClass)
+  }
+
+}
+
+function selectGroups(){
+    //select group
+  var test = document.getElementsByClassName('arc');
+  //console.log(test);
+
+
+  //Clicking on the Arcs
+  for (var i = 0 ; i < test.length ; i++){
+    test[i].addEventListener('click', function(e) {
+
+      var imports = document.getElementsByClassName('import')[0].checked;
+      var exports = document.getElementsByClassName('export')[0].checked;
+      console.log('import ', imports);
+      console.log('export ', exports);
+      //e.currentTarget.setAttribute('stroke', '#ff00cc');
+      var thisClass = e.currentTarget.getAttribute("class").replace("arc ",'').replace(' grey',' ');
+      //console.log(thisClass);
+      var theClass= thisClass.split(' ')[0];
+      //console.log(theClass);
+
+      resetLinesAndArcs('grey');
+
+      //select arcs blue
+      var arcs = document.getElementsByClassName('arc '+theClass);
+      for ( var l = 0 ; l < arcs.length ; l++){
+        var arcClass = arcs[l].getAttribute("class");
+        arcs[l].setAttribute("class", arcClass+" selected");
+        //console.log(arcs[l]);
+      }      
+
+      //select import lines
+      if(exports){
+        console.log('coloring imports');
+        var lines = document.getElementsByClassName('link '+theClass);
+        for ( var j = 0; j < lines.length ; j++){
+          lines[j].setAttribute("class", 'link '+theClass+' blue');
+          //lines[j].setAttribute('style','stroke:#00A4FF;stroke-opacity:1');
+        }        
+      }
+
+      if(imports){
+        console.log('coloring exports', theClass);
+        var lines = document.querySelectorAll('[data-exp]');
+        for (var i in lines) if (lines.hasOwnProperty(i)) {
+          //console.log(lines[i].getAttribute('data-exp'));
+
+          if(lines[i].getAttribute('data-exp').includes(theClass)&!lines[i].getAttribute('class').includes(theClass)){
+            console.log(lines[i].getAttribute('class'), lines[i].getAttribute('data-exp'));
+            var aClass = lines[i].getAttribute('class').replace(' grey','');
+            //console.log(lines[i]);
+            lines[i].setAttribute("class", aClass+' hotPink');
+            //lines[i].setAttribute('style','stroke:hotpink;stroke-opacity:1');
+          }
+        };
+      }
+
+      //console.log(lines);
+    });
+  }
+
+  //Clicking on the individual item
+  var nodes = document.getElementsByClassName('node');
+  for (var i = 0 ; i < nodes.length ; i++){
+    nodes[i].addEventListener('click', function(e) {
+      var imports = document.getElementsByClassName('import')[0].checked;
+      var exports = document.getElementsByClassName('export')[0].checked;
+
+      var thisClass = e.currentTarget.getAttribute("class").replace("node ",'');
+      //var theClass= thisClass.split(' ')[0];
+      console.log(thisClass);
+
+      resetLinesAndArcs('grey');
+
+      //recolour arc
+      var arc = document.getElementsByClassName('arc '+thisClass)[0];
+      arc.setAttribute("class", 'arc '+thisClass+" selected"); 
+
+      if(exports){
+        //recolour lines
+        var lines = document.getElementsByClassName('link '+thisClass);
+        //console.log(lines);
+        for ( var j = 0; j < lines.length ; j++){
+          var theClass = lines[j].getAttribute('class').replace(' grey','');
+          lines[j].setAttribute("class", theClass+' blue');
+          //lines[j].setAttribute('style','stroke:#00A4FF;stroke-opacity:1');
+        }          
+      }
+      
+      if(imports){
+        var lines = document.querySelectorAll('[data-exp]');
+        for (var i in lines) if (lines.hasOwnProperty(i)) {
+          //console.log(lines[i].getAttribute('data-exp'));
+          console.log(thisClass);
+          if(lines[i].getAttribute('data-exp').includes(thisClass)&!lines[i].getAttribute('class').includes(thisClass)){
+            console.log(lines[i].getAttribute('class'), lines[i].getAttribute('data-exp'));
+            var aClass = lines[i].getAttribute('class').replace(' grey','');
+            //console.log(lines[i]);
+            lines[i].setAttribute("class", aClass+' hotPink');
+            //lines[i].setAttribute('style','stroke:hotpink;stroke-opacity:1');
+          }
+        };        
+      }
+
+
+
+      });
+
+
+  }
+}
+
+function whiteArcs(){
+  var allArcs = document.getElementsByClassName('arc');
+  for ( var m = 0 ; m < allArcs.length ; m++){
+    var arcClass = allArcs[m].getAttribute("class");
+    allArcs[m].setAttribute("class", arcClass+' white');
+  }
+  var allText = document.getElementsByClassName('node');
+  for ( var n = 0 ; n < allText.length ; n++){
+    var textClass = allText[n].getAttribute("class");
+    allText[n].setAttribute("class", textClass+' black');
+  }
+}
+
+function resetLinesAndArcs(color){
+
+      //reset arcs
+      var allArcs = document.getElementsByClassName('arc');
+      //console.log(allArcs);
+      for ( var m = 0 ; m < allArcs.length ; m++){
+        var arcClass = allArcs[m].getAttribute("class").replace(' selected','').replace(' white','');
+        allArcs[m].setAttribute("class", arcClass);
+      //console.log(m);
+      }
+        //reset all lines
+      var allLines = document.getElementsByClassName('link');
+      //console.log(allLines);
+      for ( var k = 0 ; k < allLines.length ; k++){
+        //console.log(allLines[k]);
+        var thisClass= allLines[k].getAttribute('class').replace(' blue','').replace(' hotPink','').replace(' grey','').replace(' hidden','');
+        if(color === 'steelblue'){
+          allLines[k].setAttribute('class',thisClass);
+        }else{
+          allLines[k].setAttribute('class',thisClass+' grey');
+        }
+        
+      }
+
+      //reset text
+      var allText = document.getElementsByClassName('node');
+      for ( var n = 0 ; n < allText.length ; n++){
+        var textClass = allText[n].getAttribute("class").replace(' black','');
+        allText[n].setAttribute("class", textClass);
+      }
+}
+
+function hideAllLines(){
+  var lines = document.querySelectorAll('.link');
+  for ( var i = 0 ; i < lines.length ; i++){
+    var thisClass = lines[i].getAttribute('class');
+    lines[i].setAttribute('class',thisClass+' hidden');
+  }
+}
+
+
+</script>

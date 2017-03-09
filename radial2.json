@@ -1,0 +1,5 @@
+[
+{"name":"flare.police.property","size":3938,"imports":["flare.dvla.drivers", "flare.clg.cctv"]},
+{"name":"flare.dvla.drivers","size":3812,"imports":["flare.police.property","flare.clg.cctv"]},
+{"name":"flare.clg.cctv","size":6714,"imports":["flare.police.property"]}
+]
