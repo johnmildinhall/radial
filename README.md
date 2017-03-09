@@ -9,7 +9,7 @@ This is a D3.js visualisation of UK Justice System Datasets.
 Clone the repo.
 
 Run a simple python server:
-`python -m SimpleHTTPServer 8000
+  python -m SimpleHTTPServer 8000
 
 
 ## Updating the data
@@ -18,8 +18,8 @@ The raw data is held in .csv format in 'raw-data2.csv'. n.b. any spelling mistak
 
 To update the visualisation, you need to run a js script to generate a new json file. This is called 'radial3.json'. To do this:
 
-`npm update
+  npm update
 
-`npm install
+  npm install
 
-`node data-processing.js
+  node data-processing.js
