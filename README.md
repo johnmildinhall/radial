@@ -10,6 +10,7 @@ Run a simple python server:
 ```
 python -m SimpleHTTPServer 8000
 ```
+navigate to http://localhost:8000/radial.html
 
 
 ## Updating the data
